@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* ── Rojak Family Market — Design System ────────────────────────────── */
+:root {
+  --green:   #1C3928;
+  --green-m: #2A5239;
+  --green-l: #3A6B4A;
+  --gold:    #C4A052;
+  --gold-l:  #E2C47A;
+  --gold-bg: #FAF5E9;
+  --red:     #C41E3A;
+  --cream:   #F8F4EC;
+  --dark:    #1E1E1E;
+  --text:    #1C1C1C;
+  --muted:   #6B6B5A;
+  --border:  #E8E0D0;
+}
+
+html, body { height: 100%; margin: 0; }
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--text);
+}
+
+.font-syne    { font-family: 'Syne', sans-serif; }
+.font-serif   { font-family: 'Playfair Display', Georgia, serif; }
+.font-sans    { font-family: 'DM Sans', system-ui, sans-serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 999px; opacity: .4; }
+
+/* Animations */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes fadeUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes popBadge {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.35); }
+}
+
+.animate-slide-in  { animation: slideInRight 0.32s cubic-bezier(.22,.68,0,1.2); }
+.animate-fade-up   { animation: fadeUp 0.25s ease; }
+.animate-pop       { animation: popBadge 0.3s ease; }
