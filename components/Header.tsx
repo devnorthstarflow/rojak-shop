@@ -1,8 +1,9 @@
 'use client'
 
 import { useCart } from '@/store/cart'
-import { ShoppingCart, Search, Menu, X } from 'lucide-react'
+import { ShoppingCart, Search, Menu, LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Props {
   onSearch: (q: string) => void
@@ -13,6 +14,13 @@ interface Props {
 export default function Header({ onSearch, searchValue, onMenuToggle }: Props) {
   const { count, toggle } = useCart()
   const [searchFocused, setSearchFocused] = useState(false)
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <header style={{ background: 'var(--green)', borderBottom: '3px solid var(--gold)' }}
@@ -28,7 +36,6 @@ export default function Header({ onSearch, searchValue, onMenuToggle }: Props) {
         {/* Logo */}
         <a href="https://rojak-family-market.vercel.app"
           className="flex items-center gap-3 flex-shrink-0 group">
-          {/* Merlion-inspired mark */}
           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'var(--gold)' }}>
             <span className="font-syne text-white font-black text-xl leading-none">R</span>
@@ -63,11 +70,9 @@ export default function Header({ onSearch, searchValue, onMenuToggle }: Props) {
           />
         </div>
 
-        {/* Tagline — desktop only */}
+        {/* Tagline desktop */}
         <div className="hidden lg:block text-right flex-shrink-0">
-          <div className="text-[10px] italic" style={{ color: 'var(--gold)' }}>
-            Singapore spirit.
-          </div>
+          <div className="text-[10px] italic" style={{ color: 'var(--gold)' }}>Singapore spirit.</div>
           <div className="text-[10px] italic text-white/50">Alpine soul.</div>
         </div>
 
@@ -78,12 +83,18 @@ export default function Header({ onSearch, searchValue, onMenuToggle }: Props) {
           <ShoppingCart size={16} />
           <span className="hidden sm:inline font-syne tracking-wide text-xs">PANIER</span>
           {count() > 0 && (
-            <span
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center animate-pop"
+            <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center animate-pop"
               style={{ background: 'var(--red)', color: 'white' }}>
               {count()}
             </span>
           )}
+        </button>
+
+        {/* Logout */}
+        <button onClick={handleLogout}
+          title="Se déconnecter"
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-white/40 hover:text-white hover:bg-white/10">
+          <LogOut size={15} />
         </button>
       </div>
     </header>
