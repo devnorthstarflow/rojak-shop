@@ -7,6 +7,7 @@ export interface Product {
   category: string
   subcategory: string
   brand?: string
+  conditionnement?: string
 }
 
 export interface CartItem {
