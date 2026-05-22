@@ -4,7 +4,8 @@ import { Product } from '@/types'
 import fs from 'fs'
 import path from 'path'
 
-// Charge le JSON pré-scraped si disponible (généré par scraper/scrape.py)
+const PAGE_SIZE = 24
+
 function loadStaticProducts(): Product[] | null {
   try {
     const filePath = path.join(process.cwd(), 'public', 'products.json')
@@ -16,25 +17,80 @@ function loadStaticProducts(): Product[] | null {
   }
 }
 
+// Mapping segment URL → subcategory dans le JSON
+const URL_TO_SUBCAT: Record<string, string> = {
+  'coco':                                'Noix de Coco',
+  'pates-de-riz-nouilles-et-vermicelles':'Pâtes de riz & Nouilles',
+  'riz':                                 'Riz BIO',
+  'sauces-produits-bio':                 'Sauces & Curry BIO',
+  'champignons-baies':                   'Champignons & Baies',
+  'herbes':                              'Herbes BIO',
+  'graines':                             'Graines BIO',
+  'sucres':                              'Sucres BIO',
+  'the':                                 'Thé BIO',
+  'crackers-de-riz':                     'Crackers de riz',
+  'galettes-pates-vermicelles':          'Galettes, Pâtes, Vermicelles',
+  'farines-aides-culinaires':            'Farines & Aides culinaires',
+  'riz-cereales-legumineuses':           'Riz, Céréales, Légumineuses',
+  'soupes-nouilles-instantanees':        'Soupes & Nouilles instant.',
+  'huiles-vinaigres-alcools-culinaires': 'Huiles, Vinaigres & Alcools',
+  'epices-assaisonnements':              'Épices & Assaisonnements',
+  'sauces':                              'Sauces',
+  'conserves':                           'Conserves',
+  'legumes-fruits-plantes-seches':       'Légumes & Fruits séchés',
+  'snacks-desserts':                     'Snacks & Desserts',
+  'the-infusions-instantanes':           'Thés & Infusions',
+  'dimsum-vapeur':                       'Surgelés',
+  'dimsum-bouilli':                      'Surgelés',
+  'dimsum-poele-frit':                   'Surgelés',
+  'brioches-galettes-salees':            'Surgelés',
+  'plats-prepares':                      'Surgelés',
+  'derives-riz-ble-soja':                'Surgelés',
+  'poissons':                            'Surgelés',
+  'crevettes-crabes':                    'Surgelés',
+  'fruits-de-mer-grenouilles':           'Surgelés',
+  'viandes-volailles':                   'Surgelés',
+  'snacks-desserts-surgeles':            'Surgelés',
+  'mollusques':                          'Surgelés',
+  'jus-noix-coco':                       'Boissons',
+  'boisson-base-fruits':                 'Boissons',
+  'boissons-au-the':                     'Boissons',
+  'boissons-gazeuses-sodas':             'Boissons',
+  'boissons-au-soja':                    'Boissons',
+  'boissons-aux-plantes':                'Boissons',
+  'bieres':                              'Boissons',
+  'sake':                                'Boissons',
+  'liqueurs':                            'Boissons',
+  'autres-alcools':                      'Boissons',
+  'cuisson-ustensiles':                  'Divers',
+  'vaisselle':                           'Divers',
+  'arts-de-la-table':                    'Divers',
+  'decoration':                          'Divers',
+}
+
+function subcatFromUrl(url: string): string {
+  const segment = url.replace(/\/$/, '').split('/').pop() ?? ''
+  return URL_TO_SUBCAT[segment] ?? ''
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const url      = searchParams.get('url')
   const page     = parseInt(searchParams.get('page') ?? '1')
   const search   = searchParams.get('search')?.toLowerCase() ?? ''
   const category = searchParams.get('category') ?? ''
-  const PAGE_SIZE = 24
 
-  // ── Mode recherche globale ────────────────────────────────────────────────
+  const all = loadStaticProducts()
+
+  // ── Recherche globale ─────────────────────────────────────────────────────
   if (search || category) {
-    const all = loadStaticProducts()
-    if (!all) {
-      return NextResponse.json({ products: [], maxPage: 1, total: 0, source: 'none' })
-    }
+    if (!all) return NextResponse.json({ products: [], maxPage: 1, total: 0, source: 'none' })
     let filtered = all
     if (search) {
       filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(search) ||
+        p.name?.toLowerCase().includes(search) ||
         p.ref?.includes(search) ||
+        (p as any).brand?.toLowerCase().includes(search) ||
         p.subcategory?.toLowerCase().includes(search)
       )
     }
@@ -48,33 +104,33 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Mode sous-catégorie ───────────────────────────────────────────────────
-  if (!url) {
-    return NextResponse.json({ error: 'Missing url param' }, { status: 400 })
-  }
+  if (!url) return NextResponse.json({ error: 'Missing url param' }, { status: 400 })
 
-  // 1. Essaie le JSON statique d'abord
-  const all = loadStaticProducts()
-  if (all) {
-    const filtered = all.filter(p => {
-      // Retrouve la sous-cat par son URL path
-      const subPath = url.replace(/\?.*/, '')
-      return p.url?.includes(subPath.replace(/\/$/, '').split('/').pop() ?? '')
-        || p.subcategory && url.includes(p.subcategory)
+  if (all && all.length > 0) {
+    const targetSubcat = subcatFromUrl(url)
+
+    let filtered = all.filter(p => {
+      if (targetSubcat) return p.subcategory === targetSubcat
+      // Fallback si pas de mapping : filtre par category
+      const segment = url.replace(/\/$/, '').split('/').pop() ?? ''
+      return p.category?.toLowerCase().includes(segment) ||
+             p.subcategory?.toLowerCase().includes(segment)
     })
-    // Fallback : filtre par URL de produit contenant le segment de l'URL
-    const segment = url.replace(/\/$/, '').split('/').pop() ?? ''
-    const bySegment = all.filter(p => p.url?.includes(segment))
 
-    const result = bySegment.length > 0 ? bySegment : filtered
-    const total   = result.length
-    const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
-    const slice   = result.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-    if (slice.length > 0) {
+    // Pour Surgelés et Boissons : toute la catégorie ensemble
+    if (filtered.length === 0 && (targetSubcat === 'Surgelés' || targetSubcat === 'Boissons')) {
+      filtered = all.filter(p => p.category === targetSubcat)
+    }
+
+    if (filtered.length > 0) {
+      const total   = filtered.length
+      const maxPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+      const slice   = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
       return NextResponse.json({ products: slice, maxPage, total, source: 'static' })
     }
   }
 
-  // 2. Fallback : scrape live
+  // ── Fallback live scraping ────────────────────────────────────────────────
   try {
     const data = await fetchSubcategoryPage(url, page)
     return NextResponse.json({ ...data, source: 'live' })
