@@ -111,6 +111,7 @@ export async function fetchSubcategoryPage(url: string, page = 1): Promise<{ pro
 }
 
 export function getImageUrl(product: Product): string {
+  if (product.img && product.img.startsWith('/images/')) return product.img
   if (product.img && product.img.includes('tang-freres')) return product.img
   if (product.ref) return `${BASE}/wp-content/uploads/produits/${product.ref}.jpg`
   return '/placeholder.png'
