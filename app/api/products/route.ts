@@ -17,8 +17,8 @@ function loadStaticProducts(): Product[] | null {
   }
 }
 
-// Mapping segment URL → subcategory dans le JSON
 const URL_TO_SUBCAT: Record<string, string> = {
+  // BIO
   'coco':                                'Noix de Coco',
   'pates-de-riz-nouilles-et-vermicelles':'Pâtes de riz & Nouilles',
   'riz':                                 'Riz BIO',
@@ -29,6 +29,7 @@ const URL_TO_SUBCAT: Record<string, string> = {
   'sucres':                              'Sucres BIO',
   'the':                                 'Thé BIO',
   'crackers-de-riz':                     'Crackers de riz',
+  // Épicerie
   'galettes-pates-vermicelles':          'Galettes, Pâtes, Vermicelles',
   'farines-aides-culinaires':            'Farines & Aides culinaires',
   'riz-cereales-legumineuses':           'Riz, Céréales, Légumineuses',
@@ -40,6 +41,7 @@ const URL_TO_SUBCAT: Record<string, string> = {
   'legumes-fruits-plantes-seches':       'Légumes & Fruits séchés',
   'snacks-desserts':                     'Snacks & Desserts',
   'the-infusions-instantanes':           'Thés & Infusions',
+  // Surgelés
   'dimsum-vapeur':                       'Surgelés',
   'dimsum-bouilli':                      'Surgelés',
   'dimsum-poele-frit':                   'Surgelés',
@@ -52,16 +54,19 @@ const URL_TO_SUBCAT: Record<string, string> = {
   'viandes-volailles':                   'Surgelés',
   'snacks-desserts-surgeles':            'Surgelés',
   'mollusques':                          'Surgelés',
-  'jus-noix-coco':                       'Boissons',
-  'boisson-base-fruits':                 'Boissons',
-  'boissons-au-the':                     'Boissons',
-  'boissons-gazeuses-sodas':             'Boissons',
-  'boissons-au-soja':                    'Boissons',
-  'boissons-aux-plantes':                'Boissons',
-  'bieres':                              'Boissons',
-  'sake':                                'Boissons',
-  'liqueurs':                            'Boissons',
-  'autres-alcools':                      'Boissons',
+  // Boissons — sous-catégories exactes
+  'jus-noix-coco':                       'Jus de coco',
+  'boisson-base-fruits':                 'Jus de fruits',
+  'boissons-au-the':                     'Boissons au thé',
+  'boissons-gazeuses-sodas':             'Boissons gazeuses',
+  'boissons-au-soja':                    'Boissons au soja',
+  'boissons-aux-plantes':                'Boissons aux plantes',
+  'autres-boissons':                     'Autres boissons',
+  'bieres':                              'Bières',
+  'sake':                                'Sake',
+  'liqueurs':                            'Liqueurs',
+  'autres-alcools':                      'Autres alcools',
+  // Divers
   'cuisson-ustensiles':                  'Divers',
   'vaisselle':                           'Divers',
   'arts-de-la-table':                    'Divers',
@@ -111,15 +116,14 @@ export async function GET(req: NextRequest) {
 
     let filtered = all.filter(p => {
       if (targetSubcat) return p.subcategory === targetSubcat
-      // Fallback si pas de mapping : filtre par category
       const segment = url.replace(/\/$/, '').split('/').pop() ?? ''
       return p.category?.toLowerCase().includes(segment) ||
              p.subcategory?.toLowerCase().includes(segment)
     })
 
-    // Pour Surgelés et Boissons : toute la catégorie ensemble
-    if (filtered.length === 0 && (targetSubcat === 'Surgelés' || targetSubcat === 'Boissons')) {
-      filtered = all.filter(p => p.category === targetSubcat)
+    // Fallback Surgelés : toute la catégorie
+    if (filtered.length === 0 && targetSubcat === 'Surgelés') {
+      filtered = all.filter(p => p.category === 'Surgelés')
     }
 
     if (filtered.length > 0) {
